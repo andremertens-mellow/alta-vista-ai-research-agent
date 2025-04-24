@@ -1,54 +1,84 @@
+from typing import List, Dict, Any
 import asyncio
-from collectors.rss_collector import fetch_all
-from processor.deduplicate import remove_dupes
-from processor.summarise import summarise
-from processor.classify import rank_relevance
+from src.collectors.rss_collector import fetch_all as fetch_rss
+from src.collectors.html_collector import fetch_all as fetch_html
+from src.processor.summarise import process_item as summarise_item
+from src.processor.classify import process_item as classify_item
+from src.processor.deduplicate import process_items as deduplicate_items
+from src.processor.relevance import process_item as calculate_relevance
+from src.storage import save_raw_data, save_processed_data
+from datetime import datetime
 
-async def main():
+async def run_agent(sources: List[str] = None, limit: int = 30) -> None:
     """
-    Fluxo principal do agente:
-    1. Coleta notícias dos feeds RSS
-    2. Remove duplicatas
-    3. Para cada item:
-       - Gera resumo
-       - Classifica relevância
-    4. Filtra por score >= 3
-    5. Ordena por relevância
-    6. Exibe top 10
+    Run the agent to collect and process news articles.
+    
+    Args:
+        sources (List[str], optional): List of news sources to collect from. Defaults to None.
+        limit (int, optional): Maximum number of items to process. Defaults to 30.
     """
-    print("🤖 Alta Vista AI Research Agent\n")
+    print(f"\n🔍 Coletando notícias das fontes: {sources}")
     
-    print("1. Coletando notícias...")
-    raw = await fetch_all()
-    print(f"   → {len(raw)} itens encontrados\n")
+    # Collect news from RSS feeds
+    rss_items = await fetch_rss(sources)
+    print(f"\nFeeds configurados: {len(rss_items)}")
     
-    print("2. Removendo duplicatas...")
-    uniq = remove_dupes(raw)
-    print(f"   → {len(uniq)} itens únicos\n")
+    # Collect news from HTML sources
+    html_items = await fetch_html(sources)
     
-    print("3. Processando itens...")
-    curated = []
-    for i, it in enumerate(uniq, 1):
-        print(f"   → Processando item {i}/{len(uniq)}", end="\r")
+    # Combine items
+    all_items = rss_items + html_items
+    print(f"\n📊 Encontrados {len(all_items)} artigos no total:")
+    print(f"   - {len(rss_items)} artigos via RSS")
+    print(f"   - {len(html_items)} artigos via HTML")
+    
+    # Remove duplicates
+    unique_items = deduplicate_items(all_items)
+    print(f"\n🔄 {len(unique_items)} itens únicos após remoção de duplicatas")
+    
+    # Process items
+    print("\n⚙️ Processando itens...")
+    
+    # Limit items if necessary
+    if len(unique_items) > limit:
+        print(f"\n⚠️ Limitando para {limit} itens dos {len(unique_items)} encontrados")
+        unique_items = unique_items[:limit]
+    
+    processed_items = []
+    for item in unique_items:
+        # Calculate relevance
+        relevance = calculate_relevance(item)
+        item['relevance'] = relevance
         
-        # Gera resumo e classifica
-        it["summary"] = await summarise(it["summary"], it["link"])
-        it["score"] = await rank_relevance(it)
-        
-        # Adiciona se relevante
-        if it["score"] >= 3:
-            curated.append(it)
-    print("\n")
+        # Only process items with relevance > 0
+        if relevance > 0:
+            # Add summary
+            summary = await summarise_item(item)
+            item['summary'] = summary
+            
+            # Add categories
+            categories = await classify_item(item)
+            item['categories'] = categories
+            
+            processed_items.append(item)
     
-    print("4. Ordenando por relevância...")
-    curated.sort(key=lambda x: x["score"], reverse=True)
-    print(f"   → {len(curated)} itens relevantes encontrados\n")
+    # Sort by relevance
+    processed_items.sort(key=lambda x: x.get('relevance', 0), reverse=True)
     
-    print("=== Top 10 Notícias Mais Relevantes ===\n")
-    for it in curated[:10]:
-        print(f"[{it['score']}/5] {it['title']}")
-        print(f"→ {it['summary']}")
-        print("-" * 80 + "\n")
+    print(f"\n📰 {len(processed_items)} itens relevantes encontrados:\n")
+    for item in processed_items:
+        print(f"⭐ Relevância {item['relevance']}: {item['title']}")
+        print(f"📝 Sumário: {item['summary']}")
+        print(f"🔍 Fonte: {item['source']}\n")
+    
+    # Save data
+    timestamp = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+    raw_path = save_raw_data(unique_items, timestamp)
+    processed_path = save_processed_data(processed_items, timestamp)
+    
+    print("💾 Dados salvos em:")
+    print(f"   Raw: {raw_path}")
+    print(f"   Processed: {processed_path}")
 
 if __name__ == "__main__":
-    asyncio.run(main()) 
+    asyncio.run(run_agent()) 
