@@ -1,0 +1,7 @@
+aiohttp>=3.8.0
+feedparser>=6.0.0
+pyyaml>=6.0.0
+newspaper3k
+beautifulsoup4
+python-dotenv
+langchain-openai
