@@ -1,0 +1,21 @@
+sources:
+  - id: valor_investe
+    name: Valor Investe
+    base_url: https://valorinveste.globo.com
+    landing_url: https://valorinveste.globo.com/ultimas-noticias
+    article:
+      link_selector: .feed-post-link
+      title_selector: .content-head__title
+      content_selector: .content-text p
+      date_selector: .content-publication-data__updated
+      author_selector: .content-publication-data__from
+  - id: exame
+    name: Exame
+    base_url: https://exame.com
+    landing_url: https://exame.com/ultimas-noticias
+    article:
+      link_selector: .article-card__link
+      title_selector: .article-title
+      content_selector: .article-content p
+      date_selector: .article-date
+      author_selector: .article-author 
