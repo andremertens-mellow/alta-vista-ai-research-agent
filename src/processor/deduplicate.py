@@ -1,7 +1,7 @@
 import hashlib
 from typing import List, Dict
 
-def remove_dupes(items: List[Dict]) -> List[Dict]:
+def process_items(items: List[Dict]) -> List[Dict]:
     """
     Remove itens duplicados de uma lista de dicionários usando um hash SHA256 como identificador único.
     O hash é gerado a partir da concatenação do título (em minúsculas) e fonte do item.
@@ -18,7 +18,7 @@ def remove_dupes(items: List[Dict]) -> List[Dict]:
         ...     {"title": "Notícia 1", "source": "site1"},
         ...     {"title": "Notícia 2", "source": "site2"}
         ... ]
-        >>> remove_dupes(items)
+        >>> process_items(items)
         [{"title": "Notícia 1", "source": "site1"}, {"title": "Notícia 2", "source": "site2"}]
     """
     seen = set()

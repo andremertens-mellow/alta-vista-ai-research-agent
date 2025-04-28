@@ -1,0 +1,30 @@
+name: Coleta Automática de Notícias
+
+on:
+  workflow_dispatch:      # Permite apenas execução manual
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+      
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
+      
+      - name: Executar coleta
+        run: python -m src.cli run --sources html,rss --limit 15
+      
+      - name: Upload dos resultados
+        uses: actions/upload-artifact@v4
+        with:
+          name: news-json
+          path: data/clean/*.json
+          retention-days: 7  # Mantém os arquivos por 7 dias 

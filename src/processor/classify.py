@@ -74,3 +74,17 @@ async def rank_relevance(item: Dict) -> int:
     except Exception as e:
         print(f"Erro ao extrair score: {e}")
         return 0  # Retorna 0 em caso de erro na extração 
+
+async def process_item(item: Dict) -> Dict:
+    """
+    Processa um item de notícia e retorna suas categorias.
+    
+    Args:
+        item: Dicionário contendo informações da notícia
+        
+    Returns:
+        Dict: Dicionário com as categorias do item
+    """
+    # Por enquanto, vamos apenas retornar um dicionário vazio
+    # TODO: Implementar classificação por categorias
+    return {} 

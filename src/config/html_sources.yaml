@@ -4,18 +4,19 @@ sources:
     base_url: https://valorinveste.globo.com
     landing_url: https://valorinveste.globo.com/ultimas-noticias
     article:
-      link_selector: .feed-post-link
-      title_selector: .content-head__title
-      content_selector: .content-text p
-      date_selector: .content-publication-data__updated
-      author_selector: .content-publication-data__from
+      link_selector: .widget--info__text-container a
+      title_selector: .article__title
+      content_selector: .article__content
+      date_selector: .article__date
+      date_format: "%d/%m/%Y %H:%M"
+
   - id: exame
     name: Exame
     base_url: https://exame.com
     landing_url: https://exame.com/ultimas-noticias
     article:
-      link_selector: .article-card__link
-      title_selector: .article-title
-      content_selector: .article-content p
-      date_selector: .article-date
-      author_selector: .article-author 
+      link_selector: .latest-news__list a
+      title_selector: .news-title
+      content_selector: .news-content
+      date_selector: .news-date
+      date_format: "%Y-%m-%d %H:%M:%S"

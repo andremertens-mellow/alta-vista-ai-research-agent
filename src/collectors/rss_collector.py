@@ -1,7 +1,7 @@
 """
 Módulo responsável por coletar dados de feeds RSS definidos no arquivo de configuração.
 """
-from typing import Dict, List
+from typing import Dict, List, Optional
 import asyncio
 import yaml
 import aiohttp
@@ -11,6 +11,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 import re
 from bs4 import BeautifulSoup
+from dateutil import parser as date_parser
 
 def clean_html(text: str) -> str:
     """Remove tags HTML e formata o texto."""
@@ -22,6 +23,67 @@ def clean_html(text: str) -> str:
     text = re.sub(r'\s+', ' ', text).strip()
     
     return text
+
+def extract_content(entry) -> str:
+    """
+    Extrai o melhor conteúdo disponível de uma entrada do feed.
+    Tenta diferentes campos em ordem de preferência.
+    
+    Args:
+        entry: Entrada do feed RSS
+        
+    Returns:
+        str: Melhor conteúdo encontrado
+    """
+    # Tenta obter o conteúdo completo primeiro
+    if hasattr(entry, 'content'):
+        contents = entry.content
+        if isinstance(contents, list) and contents:
+            return contents[0].value
+            
+    # Tenta description ou summary
+    for field in ['description', 'summary']:
+        if hasattr(entry, field):
+            content = getattr(entry, field)
+            if content:
+                return content
+                
+    # Se nenhum conteúdo for encontrado, usa o título
+    return entry.get('title', '')
+
+def match_source(url: str, source: str) -> bool:
+    """
+    Verifica se uma URL corresponde a uma fonte.
+    Tenta diferentes partes do domínio para encontrar correspondência.
+    
+    Args:
+        url: URL do feed
+        source: Nome da fonte a procurar
+        
+    Returns:
+        bool: True se a fonte corresponde à URL
+    """
+    domain = urlparse(url).netloc.lower()
+    source = source.lower()
+    
+    # Remove subdomínios comuns
+    parts = [p for p in domain.split('.') if p not in ('www', 'br', 'com')]
+    
+    # Tenta encontrar correspondência em qualquer parte do domínio
+    return any(
+        source in part or part in source
+        for part in parts
+    )
+
+def to_iso8601(date_str):
+    """Tenta converter uma string de data para ISO 8601. Se falhar, retorna a data/hora atual em ISO."""
+    if not date_str:
+        return datetime.now().isoformat()
+    try:
+        dt = date_parser.parse(date_str)
+        return dt.isoformat()
+    except Exception:
+        return datetime.now().isoformat()
 
 async def fetch_feed(session: aiohttp.ClientSession, url: str) -> List[Dict]:
     """
@@ -61,25 +123,20 @@ async def fetch_feed(session: aiohttp.ClientSession, url: str) -> List[Dict]:
                 
             articles = []
             for entry in feed.entries:
-                # Tenta obter o melhor conteúdo disponível
-                content = ''
-                if hasattr(entry, 'content'):
-                    # Alguns feeds têm o conteúdo completo
-                    content = entry.content[0].value
-                elif hasattr(entry, 'description'):
-                    content = entry.description
-                elif hasattr(entry, 'summary'):
-                    content = entry.summary
-                else:
-                    content = entry.get('summary', '')
+                # Extrai o melhor conteúdo disponível
+                content = extract_content(entry)
                 
                 # Limpa o conteúdo
                 clean_content = clean_html(content)
                 
+                # Verifica se tem conteúdo mínimo
+                if len(clean_content) < 10:  # Ignora conteúdo muito curto
+                    continue
+                
                 article = {
                     'title': entry.get('title', ''),
                     'link': entry.get('link', ''),
-                    'published': entry.get('published', datetime.now().isoformat()),
+                    'published': to_iso8601(entry.get('published', '')),
                     'summary': clean_content,
                     'source': source
                 }
@@ -95,9 +152,14 @@ async def fetch_feed(session: aiohttp.ClientSession, url: str) -> List[Dict]:
         print(f"Erro ao processar feed {url}: {str(e)}")
         return []
 
-async def fetch_all() -> List[Dict]:
+async def fetch_all(sources: Optional[List[str]] = None) -> List[Dict]:
     """
     Busca todos os feeds RSS definidos no arquivo de configuração.
+    
+    Args:
+        sources: Lista opcional de fontes a serem coletadas.
+                Se None ou ["all"], coleta de todas as fontes.
+                Ex: ["infomoney", "investing"]
     
     Returns:
         Lista combinada de artigos de todos os feeds
@@ -107,7 +169,16 @@ async def fetch_all() -> List[Dict]:
     with open(config_path, 'r') as f:
         config = yaml.safe_load(f)
     
-    rss_urls = config.get('rss', [])
+    # Filtra URLs baseado nas fontes solicitadas
+    all_urls = config.get('rss', [])
+    if sources and sources != ["all"]:
+        rss_urls = []
+        for url in all_urls:
+            if any(match_source(url, s) for s in sources):
+                rss_urls.append(url)
+    else:
+        rss_urls = all_urls
+    
     print(f"\nFeeds configurados: {len(rss_urls)}")
     
     async with aiohttp.ClientSession() as session:

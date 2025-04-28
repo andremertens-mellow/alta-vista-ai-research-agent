@@ -1,0 +1,16 @@
+{
+  "exame": {
+    "article_links": ".article-card__link",
+    "article_content": ".article-content",
+    "article_title": ".article-title",
+    "article_subtitle": ".article-subtitle",
+    "article_date": ".article-date"
+  },
+  "valor_investe": {
+    "article_links": ".feed-post-link",
+    "article_content": ".article-content",
+    "article_title": ".article-title", 
+    "article_subtitle": ".article-subtitle",
+    "article_date": ".article-date"
+  }
+} 

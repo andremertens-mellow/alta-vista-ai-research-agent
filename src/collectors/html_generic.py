@@ -41,14 +41,33 @@ def extract_text(soup: BeautifulSoup, selector: str) -> str:
                     return elements[0].get(attr_name, "")
         else:
             elements = soup.select(selector)
+            print(f"Found {len(elements)} elements with selector {selector}")
+            
             if elements:
                 # Para seletores de conteúdo, pega todos os parágrafos
-                if selector.endswith('content-text'):
+                if 'content' in selector.lower():
                     paragraphs = []
                     for element in elements:
-                        paragraphs.extend([p.get_text(strip=True) for p in element.find_all('p')])
-                    return '\n'.join(filter(None, paragraphs))
-                return elements[0].get_text(strip=True)
+                        # Primeiro tenta encontrar parágrafos específicos
+                        p_elements = element.find_all('p')
+                        if p_elements:
+                            paragraphs.extend([p.get_text(strip=True) for p in p_elements])
+                        else:
+                            # Se não encontrar parágrafos, usa o texto do elemento
+                            text = element.get_text(strip=True)
+                            if text:
+                                paragraphs.append(text)
+                    
+                    content = '\n'.join(filter(None, paragraphs))
+                    print(f"Extracted content length: {len(content)} characters")
+                    return content
+                
+                # Para outros seletores, retorna o primeiro elemento
+                text = elements[0].get_text(strip=True)
+                print(f"Extracted text: {text[:100]}...")
+                return text
+            
+            print(f"No elements found with selector: {selector}")
     except Exception as e:
         print(f"Error extracting text with selector {selector}: {str(e)}")
     return ""
@@ -77,10 +96,10 @@ async def collect_source(source_config: Dict) -> List[Dict]:
     articles = []
     
     # Extract article links
-    links = soup.select(source_config['article_link_selector'])
+    links = soup.select(source_config['link_selector'])
     print(f"Found {len(links)} article links")
     
-    for link in links[:10]:  # Aumentado para 10 artigos
+    for link in links[:10]:  # Limitado a 10 artigos
         try:
             article_url = link.get('href')
             if not article_url:
@@ -102,7 +121,11 @@ async def collect_source(source_config: Dict) -> List[Dict]:
             date_text = extract_text(article_soup, source_config['date_selector'])
             
             # Clean and validate date
-            date_text = clean_date(date_text)
+            try:
+                date_obj = datetime.datetime.strptime(date_text, source_config['date_format'])
+                date_text = date_obj.strftime('%Y-%m-%d %H:%M:%S')
+            except Exception as e:
+                print(f"Error parsing date {date_text}: {str(e)}")
             
             # Basic article validation
             if title and content:

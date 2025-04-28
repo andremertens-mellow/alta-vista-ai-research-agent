@@ -6,16 +6,18 @@ from src.processor.summarise import process_item as summarise_item
 from src.processor.classify import process_item as classify_item
 from src.processor.deduplicate import process_items as deduplicate_items
 from src.processor.relevance import process_item as calculate_relevance
-from src.storage import save_raw_data, save_processed_data
+from src.storage_utils import save
 from datetime import datetime
 
-async def run_agent(sources: List[str] = None, limit: int = 30) -> None:
+async def run_agent(sources: List[str] = None, limit: int = 30) -> List[Dict[str, Any]]:
     """
     Run the agent to collect and process news articles.
     
     Args:
         sources (List[str], optional): List of news sources to collect from. Defaults to None.
         limit (int, optional): Maximum number of items to process. Defaults to 30.
+    Returns:
+        List[Dict[str, Any]]: Lista de artigos processados (pode ser vazia)
     """
     print(f"\n🔍 Coletando notícias das fontes: {sources}")
     
@@ -72,13 +74,10 @@ async def run_agent(sources: List[str] = None, limit: int = 30) -> None:
         print(f"🔍 Fonte: {item['source']}\n")
     
     # Save data
-    timestamp = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
-    raw_path = save_raw_data(unique_items, timestamp)
-    processed_path = save_processed_data(processed_items, timestamp)
-    
-    print("💾 Dados salvos em:")
-    print(f"   Raw: {raw_path}")
-    print(f"   Processed: {processed_path}")
+    save(unique_items, raw=True)  # Salva dados brutos
+    save(processed_items)  # Salva dados processados
+
+    return processed_items
 
 if __name__ == "__main__":
     asyncio.run(run_agent()) 
