@@ -79,6 +79,7 @@ async def draft_post(article: dict) -> dict:
                 "link": article["link"],
                 "source": article["source"],
                 "score": article["relevance"],
+                "published": article.get("published", "")
             }
         
         attempt += 1

@@ -2,19 +2,22 @@
 
 ## Sobre o Projeto
 
-Alta Vista é um agente de pesquisa baseado em IA que coleta e analisa notícias de diversas fontes. O sistema utiliza web scraping inteligente e processamento de linguagem natural para extrair informações relevantes.
+Alta Vista é um agente de pesquisa baseado em IA que coleta, analisa notícias de diversas fontes e gera conteúdo para redes sociais. O sistema utiliza web scraping inteligente, processamento de linguagem natural e IA generativa para extrair informações relevantes e criar drafts de posts otimizados para engajamento.
 
 ### Principais Funcionalidades
 
-- Coleta automática de notícias de múltiplas fontes
-- Processamento e análise de conteúdo
-- Armazenamento estruturado de dados
+- Coleta automática de notícias de múltiplas fontes (RSS e HTML)
+- Processamento e análise de conteúdo com pontuação de relevância
+- Armazenamento estruturado de dados com compressão
+- Geração automática de drafts para redes sociais
 - API para consulta de informações
+- Workflow automatizado via GitHub Actions
 
 ## Requisitos
 
 - Python 3.8+
 - pip
+- OpenAI API Key (para geração de drafts)
 - Bibliotecas necessárias (listadas em `requirements.txt`)
 
 ## Instalação
@@ -37,17 +40,32 @@ source venv/bin/activate  # Linux/Mac
 pip install -r requirements.txt
 ```
 
+4. Configure as variáveis de ambiente:
+```bash
+export OPENAI_API_KEY="sua-chave-aqui"  # Necessário para geração de drafts
+```
+
 ## Estrutura do Projeto
 
 ```
 alta-vista-ai-research-agent/
 ├── src/
 │   ├── collectors/        # Módulos de coleta de dados
+│   │   ├── html_collector.py  # Coleta via web scraping
+│   │   └── rss_collector.py   # Coleta via RSS feeds
 │   ├── config/           # Arquivos de configuração
+│   │   ├── sources.yaml      # Configuração de fontes
+│   │   └── html_sources.yaml # Configuração de fontes HTML
 │   ├── storage/          # Módulos de armazenamento
-│   └── processors/       # Processadores de conteúdo
+│   │   ├── compressor.py     # Compressão de dados
+│   │   └── indexer.py        # Indexação de artigos
+│   ├── processor/        # Processadores de conteúdo
+│   │   └── relevance.py      # Análise de relevância
+│   ├── cli.py           # Interface de linha de comando
+│   └── create_post.py   # Gerador de drafts para redes sociais
 ├── tests/               # Testes automatizados
-├── docs/               # Documentação adicional
+├── output/             # Drafts gerados para redes sociais
+├── data/               # Dados coletados e processados
 └── requirements.txt    # Dependências do projeto
 ```
 
@@ -124,18 +142,40 @@ print(f"Artigos coletados: {len(articles)}")
 
 ## Uso
 
-### Executando o Coletor
+### Coletando Notícias e Gerando Drafts
 
-```python
-from src.collectors.html_generic import collect
-import asyncio
+O sistema oferece uma interface de linha de comando para suas principais funcionalidades:
 
-# Coleta de todas as fontes configuradas
-articles = asyncio.run(collect())
+```bash
+# Coleta de notícias de todas as fontes
+python -m src.cli
 
 # Coleta de fontes específicas
-articles = asyncio.run(collect(sources=["Valor Investe", "Exame"]))
+python -m src.cli --sources valorinv infomoney
+
+# Coleta e geração de drafts para redes sociais
+python -m src.cli --sources valorinv --limit 30 --draft
+
+# Apenas geração de drafts a partir de dados existentes
+python -m src.cli --draft
 ```
+
+### Formato dos Drafts
+
+Os drafts gerados para redes sociais seguem um formato otimizado para Instagram:
+
+- **Hook**: Título chamativo com máximo de 20 palavras
+- **Text**: Corpo do post com 600-800 caracteres
+- **Hashtags**: 3-5 hashtags relevantes
+
+Os drafts são salvos em formato CSV em `output/posts_[DATA].csv` contendo:
+- Título original
+- Hook gerado
+- Texto do post
+- Hashtags
+- Link da fonte
+- Fonte original
+- Score de relevância
 
 ### Configuração do Storage
 
@@ -149,6 +189,23 @@ storage:
     database: "news.db"
     # outros parâmetros de conexão...
 ```
+
+## Automação
+
+### GitHub Actions
+
+O projeto inclui workflows automatizados para:
+
+1. Coleta periódica de notícias
+2. Geração de drafts
+3. Testes automatizados
+
+Para configurar:
+
+1. Adicione suas credenciais como secrets no GitHub:
+   - `OPENAI_API_KEY`
+
+2. Ajuste a frequência de execução em `.github/workflows/collect.yml`
 
 ## Desenvolvimento
 
@@ -178,10 +235,10 @@ python -m pytest tests/test_storage.py
    - Confirme se a estrutura do site não mudou
    - Verifique logs de erro em `logs/collector.log`
 
-2. **Problemas de conexão**
-   - Verifique sua conexão com a internet
-   - Confirme se o site está acessível
-   - Verifique configurações de proxy/firewall
+2. **Problemas com geração de drafts**
+   - Verifique sua OPENAI_API_KEY
+   - Confirme se há artigos coletados recentemente
+   - Verifique a conectividade com a API da OpenAI
 
 ## Contribuindo
 

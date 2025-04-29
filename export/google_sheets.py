@@ -16,6 +16,28 @@ except:
 
 SPREADSHEET_ID = None  # Será preenchido na primeira execução
 
+def format_date(date_str: str) -> str:
+    """
+    Formata a data do post para um formato amigável
+    
+    Args:
+        date_str: String com a data no formato original
+        
+    Returns:
+        str: Data formatada em português
+    """
+    try:
+        # Tenta diferentes formatos de data
+        for fmt in ["%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%a, %d %b %Y %H:%M:%S %z"]:
+            try:
+                date = datetime.strptime(date_str, fmt)
+                return date.strftime("%d/%m/%Y %H:%M")
+            except ValueError:
+                continue
+        return date_str  # Retorna original se nenhum formato funcionar
+    except:
+        return date_str
+
 def get_or_create_spreadsheet(sheets_service, drive_service):
     """
     Obtém a planilha fixa ou cria uma nova se não existir
@@ -117,6 +139,10 @@ def upload_csv(csv_path: pathlib.Path, share_with_email: str = None) -> str:
 
     # Read CSV
     df = pd.read_csv(csv_path)
+    
+    # Adiciona coluna de data formatada se não existir
+    if 'published' in df.columns:
+        df['data_formatada'] = df['published'].apply(format_date)
     
     # Get current month and year
     current_date = datetime.now()
