@@ -11,7 +11,7 @@ pyyaml>=6.0.0
 newspaper3k
 langchain-openai
 tenacity>=8.2.3
-typer>=0.9.0
+typer>=0.9.0  # Para interface CLI
 pandas>=2.0.0
 google-auth>=2.23.0
 google-auth-oauthlib>=1.0.0
