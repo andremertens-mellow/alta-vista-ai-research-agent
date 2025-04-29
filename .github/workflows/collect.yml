@@ -30,7 +30,7 @@ jobs:
           echo "$GSHEETS_CREDS" > export/temp_credentials.json
       
       - name: Executar coleta e gerar drafts
-        run: python -m src.cli run --sources html,rss --limit 20 --draft
+        run: python -m src.cli --sources html,rss --limit 20 --draft
       
       - name: Upload dos resultados
         uses: actions/upload-artifact@v4
