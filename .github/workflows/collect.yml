@@ -1,10 +1,15 @@
-name: Coleta Automática de Notícias
+name: Daily Drafts
 
 on:
-  workflow_dispatch:      # Permite apenas execução manual
+  schedule:
+    - cron: "0 9 * * *"   # 09:00 BRT
+  workflow_dispatch:      # Permite execução manual também
+
+env:
+  GSHEETS_CREDS: ${{ secrets.GSHEETS_CREDS }}   # conteúdo do credentials.json
 
 jobs:
-  collect:
+  run:
     runs-on: ubuntu-latest
     
     steps:
@@ -19,12 +24,17 @@ jobs:
       - name: Instalar dependências
         run: pip install -r requirements.txt
       
-      - name: Executar coleta
-        run: python -m src.cli run --sources html,rss --limit 15
+      - name: Configurar credenciais do Google Sheets
+        run: |
+          mkdir -p export
+          echo "$GSHEETS_CREDS" > export/temp_credentials.json
+      
+      - name: Executar coleta e gerar drafts
+        run: python -m src.cli run --sources html,rss --limit 20 --draft
       
       - name: Upload dos resultados
         uses: actions/upload-artifact@v4
         with:
-          name: news-json
-          path: data/clean/*.json
+          name: drafts-csv
+          path: output/posts_*.csv
           retention-days: 7  # Mantém os arquivos por 7 dias 
