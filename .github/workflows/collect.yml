@@ -7,6 +7,7 @@ on:
 
 env:
   GSHEETS_CREDS: ${{ secrets.GSHEETS_CREDS }}   # conteúdo do credentials.json
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}  # chave da API do OpenAI
 
 jobs:
   run:
